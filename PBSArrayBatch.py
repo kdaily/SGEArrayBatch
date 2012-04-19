@@ -1,8 +1,9 @@
 """
-# SGEArrayBatch.py
+# PBSArrayBatch.py
 # Kenny Daily
 #
 # Modified from:
+# SGEArrayBatch.py
 # sge.py
 #
 # Creative Commons Attribution License
