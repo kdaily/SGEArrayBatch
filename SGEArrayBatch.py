@@ -23,10 +23,9 @@ import time
 class Job:
     """The basic structure of a single Grid Engine Job. 
     """
-    def __init__(self, name, command, queue, memfree):
+    def __init__(self, name, command, nodes):
         self.name = name
-        self.queue = queue
-        self.memfree = memfree
+        self.nodes = nodes
         self.command = command
         self.script = command
         self.dependencies = []
@@ -40,10 +39,9 @@ class JobGroup:
     
     The arguments dictionary specifies variables to change for each job task.
     """   
-    def __init__(self, name, command, queue, memfree, arguments={}):
+    def __init__(self, name, command, nodes, arguments={}):
         self.name = name
-        self.queue = queue
-        self.memfree = memfree
+        self.nodes = nodes
         self.command = command
         self.dependencies = []
         self.submitted = 0
@@ -59,7 +57,7 @@ class JobGroup:
         total = 1
         
         # for now, SGE_TASK_ID becomes TASK_ID, but we base it at zero
-        self.script += """let "TASK_ID=$SGE_TASK_ID - 1"\n"""
+        self.script += """let "TASK_ID=$PBS_ARRAY_INDEX - 1"\n"""
 
         # build the array definitions
         for key in self.arguments.keys():
@@ -140,7 +138,7 @@ def extract_submittable_jobs(waiting):
     
     return submittable
 
-def submit_safe_jobs(directory, jobs, arch=None, extraargs=None):
+def submit_safe_jobs(directory, jobs, nodes=1, extraargs=None):
     """Submits a list of Jobs or JobGroups to Grid Engine.
     
     Adds parameters for queue to use, stdout, stderr files, and
@@ -154,15 +152,10 @@ def submit_safe_jobs(directory, jobs, arch=None, extraargs=None):
         
         args = " -N %s " % (job.name)
         args += " -o %s -e %s " % (job.out, job.err)
-        args += " -l mem_free=%s " % (job.memfree)
-        if arch is not None:
-            args += " -l arch=%s " % arch;
-               
-        if job.queue != None:
-            args += "-q %s " % job.queue
-
+        args += " -l nodes=%s " % (nodes)
+        
         if isinstance(job, JobGroup):
-            args += "-t 1:%d " % (job.tasks)
+            args += "-J 1-%d:1 " % (job.tasks)
 
         if len(job.dependencies) > 0:
             args += "-hold_jid "
@@ -175,18 +168,18 @@ def submit_safe_jobs(directory, jobs, arch=None, extraargs=None):
         os.system(qsubcmd)
         job.submitted = 1
 
-def submit_jobs(directory, jobs, arch=None, extraargs=None):
+def submit_jobs(directory, jobs, nodes=1, extraargs=None):
     """Submits the jobs to the Grid Engine.
     """
     waiting = list(jobs)
     
     while len(waiting) > 0:
         submittable = extract_submittable_jobs(waiting)
-        submit_safe_jobs(directory, submittable, arch, extraargs)
+        submit_safe_jobs(directory, submittable, nodes, extraargs)
         map(waiting.remove, submittable)
 
-def build_submission(directory, jobs, arch=None):
+def build_submission(directory, jobs, nodes=1):
     """Creates necessary directories and scripts for and submits jobs."""    
     build_directories(directory)
     build_job_scripts(directory, jobs)
-    submit_jobs(directory, jobs, arch)
+    submit_jobs(directory, jobs, nodes)

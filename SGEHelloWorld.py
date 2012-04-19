@@ -6,13 +6,13 @@ File Description
 File: SGEHelloWorld.py
 Created 2011-12-04
 
-Example of running an array job with SGEArrayBatch
+Example of running an array job with PBSArrayBatch
 """
 
 import sys, os
 from optparse import OptionParser
 
-import SGEArrayBatch as SGE
+import PBSArrayBatch as PBS
 
 def main(argv):
     """Callable from Command Line"""
@@ -22,15 +22,14 @@ def main(argv):
     usageStr = \
         """usage: %prog [options] directory 
         
-        Hello World SGEArrayBatch Script.
+        Hello World PBSArrayBatch Script.
         Set directory to set the job cwd.
         
         """
         
     parser = OptionParser(usage=usageStr)
-    parser.add_option('--name', dest='name', default='SGEHelloWorld')
-    parser.add_option('--memfree', dest='memfree', default='20M')
-    parser.add_option('--queue', dest='queue', default='my.q')
+    parser.add_option('--name', dest='name', default='PBSHelloWorld')
+    parser.add_option('--nodes', dest='nodes', default='1')
     (options, args) = parser.parse_args(argv[1:])
      
     if len(args) == 1:
@@ -54,10 +53,10 @@ def runScripts(directory, options):
                'outdir':[outdir],
                };
     
-    JG = SGE.JobGroup(name=name, command=cmdStr, queue=options.queue,
-                      arguments = argDict, memfree=options.memfree);
+    JG = PBS.JobGroup(name=name, command=cmdStr,
+                      arguments = argDict, nodes=options.nodes);
     
-    SGE.build_submission(directory, [JG]);
+    PBS.build_submission(directory, [JG], nodes=options.nodes);
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
